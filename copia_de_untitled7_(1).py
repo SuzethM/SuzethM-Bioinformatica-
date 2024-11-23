@@ -7,9 +7,6 @@ Original file is located at
     https://colab.research.google.com/drive/1uMzfeo6nLf36mUY0CSqyc5M0mRSx3F2f
 """
 
-# Instalación de dependencias necesarias
-!pip install biopython ipywidgets
-
 # Importación de bibliotecas
 from Bio.Seq import Seq
 from Bio.SeqUtils import seq3
