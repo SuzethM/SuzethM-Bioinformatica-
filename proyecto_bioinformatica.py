@@ -16,60 +16,44 @@ from Bio.SeqUtils import seq3
 
 # Función para procesar secuencias de ADN/ARN
 def analyze_dna(sequence):
-    try:
-        # Convertir la secuencia a un objeto Bio.Seq
-        sequence = Seq(sequence.strip().upper())
-        
-        # Validar si la secuencia contiene solo bases válidas
-        if not all(base in "ACGTU" for base in sequence):
-            return "**Error:** La secuencia contiene caracteres no válidos. Solo se permiten A, C, G, T, U."
-        
-        # Cálculos básicos
-        length = len(sequence)
-        gc_content = 100 * (sequence.count("G") + sequence.count("C")) / length
-        complement = sequence.complement()
-        transcribed = sequence.transcribe() if "T" in sequence else "No aplica (ARN)"
+    sequence = Seq(sequence.strip().upper())
+    if not all(base in "ACGTU" for base in sequence):
+        return "**Error:** La secuencia contiene caracteres no válidos. Solo se permiten A, C, G, T, U."
 
-        # Devolver resultados como texto formateado
-        return f"""
-        ### Resultados del análisis de ADN/ARN:
-        - **Longitud de la secuencia:** {length} bases
-        - **Contenido GC:** {gc_content:.2f}%
-        - **Complemento:** {complement}
-        - **Transcripción:** {transcribed}
-        """
-    except Exception as e:
-        return f"**Error:** Ocurrió un problema al procesar la secuencia. Detalles: {str(e)}"
+    length = len(sequence)
+    gc_content = 100 * (sequence.count("G") + sequence.count("C")) / length
+    complement = sequence.complement()
+    transcribed = sequence.transcribe() if "T" in sequence else "No aplica (ARN)"
+
+    return f"""
+    ### Resultados del análisis de ADN/ARN:
+    - **Longitud de la secuencia:** {length} bases
+    - **Contenido GC:** {gc_content:.2f}%
+    - **Complemento:** {complement}
+    - **Transcripción:** {transcribed}
+    """
 
 # Función para procesar secuencias de proteínas
 def analyze_protein(sequence):
-    try:
-        # Convertir la secuencia a un objeto Bio.Seq
-        sequence = Seq(sequence.strip().upper())
-        
-        # Validar si la secuencia contiene solo residuos de aminoácidos válidos
-        if not all(residue in "ACDEFGHIKLMNPQRSTVWY" for residue in sequence):
-            return "**Error:** La secuencia contiene caracteres no válidos. Usa el formato de una letra para aminoácidos."
+    sequence = Seq(sequence.strip().upper())
+    if not all(residue in "ACDEFGHIKLMNPQRSTVWY" for residue in sequence):
+        return "**Error:** La secuencia contiene caracteres no válidos. Usa el formato de una letra para aminoácidos."
 
-        # Cálculos básicos
-        length = len(sequence)
-        hydrophobic = sum(sequence.count(res) for res in "AILMFWV")
-        hydrophilic = sum(sequence.count(res) for res in "RNDQEGKH")
-        seq_three_letter = seq3(str(sequence))
+    length = len(sequence)
+    hydrophobic = sum(sequence.count(res) for res in "AILMFWV")
+    hydrophilic = sum(sequence.count(res) for res in "RNDQEGKH")
+    seq_three_letter = seq3(str(sequence))
 
-        # Devolver resultados como texto formateado
-        return f"""
-        ### Resultados del análisis de proteínas:
-        - **Longitud de la secuencia:** {length} aminoácidos
-        - **Residuos hidrofóbicos:** {hydrophobic} ({100 * hydrophobic / length:.2f}%)
-        - **Residuos hidrofílicos:** {hydrophilic} ({100 * hydrophilic / length:.2f}%)
-        - **Secuencia en formato de tres letras:** {seq_three_letter}
-        """
-    except Exception as e:
-        return f"**Error:** Ocurrió un problema al procesar la secuencia. Detalles: {str(e)}"
+    return f"""
+    ### Resultados del análisis de proteínas:
+    - **Longitud de la secuencia:** {length} aminoácidos
+    - **Residuos hidrofóbicos:** {hydrophobic} ({100 * hydrophobic / length:.2f}%)
+    - **Residuos hidrofílicos:** {hydrophilic} ({100 * hydrophilic / length:.2f}%)
+    - **Secuencia en formato de tres letras:** {seq_three_letter}
+    """
 
 # Configuración de la interfaz en Streamlit
-st.title("🔬 Análisis de Secuencias Biológicas")
+st.title("Análisis de Secuencias Biológicas")
 
 # Selección del tipo de análisis
 analysis_type = st.radio("Selecciona el tipo de análisis:", ["Análisis de ADN/ARN", "Análisis de Proteínas"])
@@ -77,13 +61,12 @@ analysis_type = st.radio("Selecciona el tipo de análisis:", ["Análisis de ADN/
 # Entrada de la secuencia
 sequence = st.text_area("Introduce la secuencia aquí:", height=150)
 
-# Validación antes de procesar
+# Mostrar resultados al presionar el botón
 if st.button("Analizar"):
-    if not sequence.strip():
-        st.error("⚠️ Por favor, introduce una secuencia para analizar.")
+    if analysis_type == "Análisis de ADN/ARN":
+        result = analyze_dna(sequence)
+        st.markdown(result)
     else:
-        # Mostrar resultados según el tipo de análisis seleccionado
-        if analysis_type == "Análisis de ADN/ARN":
-            st.markdown(analyze_dna(sequence))
-        else:
-            st.markdown(analyze_protein(sequence))
+        result = analyze_protein(sequence)
+        st.markdown(result)
+
