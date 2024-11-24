@@ -12,61 +12,92 @@ Original file is located at
 
 import streamlit as st
 from Bio.Seq import Seq
-from Bio.SeqUtils import seq3
+import plotly.express as px
+import pandas as pd
 
-# Función para procesar secuencias de ADN/ARN
+
+# Función para analizar ADN/ARN
 def analyze_dna(sequence):
     sequence = Seq(sequence.strip().upper())
     if not all(base in "ACGTU" for base in sequence):
         return "**Error:** La secuencia contiene caracteres no válidos. Solo se permiten A, C, G, T, U."
 
+    # Calcular estadísticas básicas
     length = len(sequence)
     gc_content = 100 * (sequence.count("G") + sequence.count("C")) / length
     complement = sequence.complement()
     transcribed = sequence.transcribe() if "T" in sequence else "No aplica (ARN)"
 
-    return f"""
-    ### Resultados del análisis de ADN/ARN:
-    - **Longitud de la secuencia:** {length} bases
-    - **Contenido GC:** {gc_content:.2f}%
-    - **Complemento:** {complement}
-    - **Transcripción:** {transcribed}
-    """
+    # Datos para gráficos
+    base_counts = {base: sequence.count(base) for base in "ACGTU" if sequence.count(base) > 0}
+    data = pd.DataFrame({
+        "Base": list(base_counts.keys()),
+        "Conteo": list(base_counts.values()),
+        "Porcentaje (%)": [100 * count / length for count in base_counts.values()],
+    })
 
-# Función para procesar secuencias de proteínas
-def analyze_protein(sequence):
-    sequence = Seq(sequence.strip().upper())
-    if not all(residue in "ACDEFGHIKLMNPQRSTVWY" for residue in sequence):
-        return "**Error:** La secuencia contiene caracteres no válidos. Usa el formato de una letra para aminoácidos."
+    # Datos para GC vs AT
+    gc_at_data = pd.DataFrame({
+        "Categoría": ["GC", "AT"],
+        "Porcentaje (%)": [gc_content, 100 - gc_content],
+    })
 
-    length = len(sequence)
-    hydrophobic = sum(sequence.count(res) for res in "AILMFWV")
-    hydrophilic = sum(sequence.count(res) for res in "RNDQEGKH")
-    seq_three_letter = seq3(str(sequence))
+    return {
+        "length": length,
+        "gc_content": gc_content,
+        "complement": complement,
+        "transcribed": transcribed,
+        "data": data,
+        "gc_at_data": gc_at_data,
+    }
 
-    return f"""
-    ### Resultados del análisis de proteínas:
-    - **Longitud de la secuencia:** {length} aminoácidos
-    - **Residuos hidrofóbicos:** {hydrophobic} ({100 * hydrophobic / length:.2f}%)
-    - **Residuos hidrofílicos:** {hydrophilic} ({100 * hydrophilic / length:.2f}%)
-    - **Secuencia en formato de tres letras:** {seq_three_letter}
-    """
 
 # Configuración de la interfaz en Streamlit
-st.title("Análisis de Secuencias Biológicas")
-
-# Selección del tipo de análisis
-analysis_type = st.radio("Selecciona el tipo de análisis:", ["Análisis de ADN/ARN", "Análisis de Proteínas"])
+st.title("Análisis de Secuencias Biológicas: ADN/ARN")
 
 # Entrada de la secuencia
 sequence = st.text_area("Introduce la secuencia aquí:", height=150)
 
 # Mostrar resultados al presionar el botón
 if st.button("Analizar"):
-    if analysis_type == "Análisis de ADN/ARN":
-        result = analyze_dna(sequence)
-        st.markdown(result)
+    result = analyze_dna(sequence)
+
+    if isinstance(result, dict):
+        # Indicadores básicos
+        st.markdown(f"""
+        ### Resultados del análisis:
+        - **Longitud de la secuencia:** {result["length"]} bases
+        - **Contenido GC:** {result["gc_content"]:.2f}%
+        - **Complemento:** {result["complement"]}
+        - **Transcripción:** {result["transcribed"]}
+        """)
+
+        # Gráfico 1: Conteo absoluto de bases
+        fig1 = px.bar(result["data"], x="Base", y="Conteo", title="Conteo Absoluto de Bases",
+                      labels={"Conteo": "Cantidad", "Base": "Bases"},
+                      text="Conteo")
+        fig1.update_traces(textposition='outside')
+        st.plotly_chart(fig1, use_container_width=True)
+
+        # Gráfico 2: Porcentaje relativo de bases
+        fig2 = px.pie(result["data"], names="Base", values="Porcentaje (%)", title="Porcentaje Relativo de Bases")
+        st.plotly_chart(fig2, use_container_width=True)
+
+        # Gráfico 3: Distribución GC vs AT
+        fig3 = px.pie(result["gc_at_data"], names="Categoría", values="Porcentaje (%)", title="Distribución GC vs AT")
+        st.plotly_chart(fig3, use_container_width=True)
+
+        # Gráfico 4: Visualización interactiva de la transcripción o complemento
+        complement_data = pd.DataFrame({
+            "Tipo": ["Original", "Complemento", "Transcripción"],
+            "Secuencia": [sequence, result["complement"], result["transcribed"]],
+        })
+        fig4 = px.bar(complement_data, x="Tipo", y=[len(seq) for seq in complement_data["Secuencia"]],
+                      title="Longitud de Secuencias (Original, Complemento y Transcripción)",
+                      text="Secuencia")
+        st.plotly_chart(fig4, use_container_width=True)
+
     else:
-        result = analyze_protein(sequence)
-        st.markdown(result)
+        st.error(result)
+
 
