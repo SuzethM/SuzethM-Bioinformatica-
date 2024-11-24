@@ -1,3 +1,2 @@
-Requerimientos.txt
 streamlit
 biopython
