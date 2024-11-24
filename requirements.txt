@@ -1,2 +1,4 @@
 Streamlit
 BioPython 
+Plotly
+Pandas
