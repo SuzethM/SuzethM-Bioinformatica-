@@ -22,11 +22,17 @@ def analyze_dna(sequence):
     if not all(base in "ACGTU" for base in sequence):
         return "**Error:** La secuencia contiene caracteres no válidos. Solo se permiten A, C, G, T, U."
 
+    # Determinar si es ADN o ARN
+    is_dna = "T" in sequence
+    is_rna = "U" in sequence
+    if is_dna and is_rna:
+        return "**Error:** La secuencia no puede contener tanto T como U. Debe ser ADN o ARN."
+
     # Calcular estadísticas básicas
     length = len(sequence)
     gc_content = 100 * (sequence.count("G") + sequence.count("C")) / length
-    complement = sequence.complement()
-    transcribed = sequence.transcribe() if "T" in sequence else "No aplica (ARN)"
+    complement = sequence.complement() if is_dna else "No aplica (ARN)"
+    transcribed = sequence.transcribe() if is_dna else "No aplica (ARN)"
 
     # Datos para gráficos
     base_counts = {base: sequence.count(base) for base in "ACGTU" if sequence.count(base) > 0}
@@ -87,17 +93,19 @@ if st.button("Analizar"):
         fig3 = px.pie(result["gc_at_data"], names="Categoría", values="Porcentaje (%)", title="Distribución GC vs AT")
         st.plotly_chart(fig3, use_container_width=True)
 
-        # Gráfico 4: Visualización interactiva de la transcripción o complemento
+        # Gráfico 4: Longitud de secuencias
         complement_data = pd.DataFrame({
             "Tipo": ["Original", "Complemento", "Transcripción"],
-            "Secuencia": [sequence, result["complement"], result["transcribed"]],
+            "Longitud": [len(sequence), len(result["complement"]) if isinstance(result["complement"], Seq) else 0,
+                         len(result["transcribed"]) if isinstance(result["transcribed"], Seq) else 0],
         })
-        fig4 = px.bar(complement_data, x="Tipo", y=[len(seq) for seq in complement_data["Secuencia"]],
+        fig4 = px.bar(complement_data, x="Tipo", y="Longitud",
                       title="Longitud de Secuencias (Original, Complemento y Transcripción)",
-                      text="Secuencia")
+                      labels={"Longitud": "Bases", "Tipo": "Tipo de Secuencia"})
         st.plotly_chart(fig4, use_container_width=True)
 
     else:
         st.error(result)
+
 
 
